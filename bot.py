@@ -1,11 +1,33 @@
 import asyncio
+import os
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 import discord
 from discord import app_commands
 from discord.ext import commands
 import yt_dlp
-import os
 
-# Configuración de intents
+# --- SERVIDOR HTTP DUMMY PARA RENDER (WEB SERVICE) ---
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-type", "text/plain")
+        self.end_headers()
+        self.wfile.write(b"Bot activo")
+
+    def log_message(self, format, *args):
+        # Silenciar logs HTTP en consola
+        return
+
+def run_http_server():
+    port = int(os.environ.get("PORT", 8080))
+    server = HTTPServer(("0.0.0.0", port), HealthCheckHandler)
+    server.serve_forever()
+
+# Inicia el servidor web en segundo plano
+threading.Thread(target=run_http_server, daemon=True).start()
+
+# --- CONFIGURACIÓN DEL BOT ---
 intents = discord.Intents.default()
 intents.message_content = True
 
@@ -47,7 +69,6 @@ class YTDLSource(discord.PCMVolumeTransformer):
     async def create_source(cls, search: str, *, loop=None):
         loop = loop or asyncio.get_event_loop()
         
-        # Ejecuta la extracción de datos sin bloquear el event loop
         data = await loop.run_in_executor(None, lambda: ytdl.extract_info(search, download=False))
 
         if not data:
@@ -87,7 +108,6 @@ async def play_song(interaction: discord.Interaction, search: str):
 
 @bot.event
 async def on_ready():
-    # Sincronización de comandos
     await bot.tree.sync()
     print(f"Bot conectado como {bot.user} y comandos slash sincronizados.")
 
@@ -99,7 +119,6 @@ async def slash_play(interaction: discord.Interaction, cancion: str):
     if not interaction.user.voice:
         return await interaction.response.send_message("❌ ¡Debes estar en un canal de voz!", ephemeral=True)
 
-    # Defer da hasta 15 minutos para procesar sin timeout
     await interaction.response.defer()
 
     voice_channel = interaction.user.voice.channel
@@ -117,7 +136,6 @@ async def slash_play(interaction: discord.Interaction, cancion: str):
             if guild_id not in queues:
                 queues[guild_id] = []
 
-            # Obtener título preliminar
             info = await bot.loop.run_in_executor(None, lambda: ytdl.extract_info(cancion, download=False, process=False))
             title = cancion
             if info:
@@ -169,5 +187,9 @@ async def slash_stop(interaction: discord.Interaction):
     else:
         await interaction.response.send_message("❌ El bot no está en un canal de voz.", ephemeral=True)
 
-# Reemplaza con tu token de Discord Developer Portal
-bot.run(os.getenv("DISCORD_TOKEN"))
+# --- INICIO DEL BOT ---
+TOKEN = os.getenv("DISCORD_TOKEN")
+if not TOKEN:
+    raise ValueError("Falta la variable de entorno DISCORD_TOKEN.")
+
+bot.run(TOKEN)
