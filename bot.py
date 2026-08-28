@@ -169,4 +169,4 @@ async def slash_stop(interaction: discord.Interaction):
         await interaction.response.send_message("❌ El bot no está en un canal de voz.", ephemeral=True)
 
 # Reemplaza con tu token de Discord Developer Portal
-bot.run("MTU0MjkyNDY1OTU1MTUwMjM2Ng.G4YvR7.Y4Qy4TTlAZwYQ3djYEFp7SARcokWmJjTk3w2T0")
+bot.run("MTU0MjkyNDY1OTU1MTUwMjM2Ng.GVuUjg.I2L2fPqEbauwWOtrbwauVexIE9ZZnGWhw2wTnw")
