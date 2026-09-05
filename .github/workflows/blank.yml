@@ -1,0 +1,33 @@
+name: Compilar APK Bot
+
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Instalar dependencias del sistema
+        run: |
+          sudo apt update
+          sudo apt install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
+
+      - name: Inyectar Token en la App
+        run: |
+          echo "${{ secrets.DISCORD_TOKEN }}" > token.txt
+
+      - name: Instalar Buildozer y Cython
+        run: |
+          pip install --upgrade cython buildozer virtualenv
+
+      - name: Generar APK con Buildozer
+        run: |
+          buildozer android debug
+
+      - name: Subir APK generado
+        uses: actions/upload-artifact@v4
+        with:
+          name: BotMusica-APK
+          path: bin/*.apk
